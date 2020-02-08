@@ -255,6 +255,7 @@ def start_server(name):
 
     print(f'Started {name}') # Print a log message to the console to inform of the current status
 
+@@commands.check_any(commands.has_role('Minecraft OPS'), commands.has_permissions(administrator=True)) # Only allow people to start server that have the role or are administrators
 @client.command(
     name='run',
     brief='Start a server',
