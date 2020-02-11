@@ -29,15 +29,10 @@ if not path.exists(server_dir) or not path.isdir(server_dir): # Check to make su
     print(f'The directory specified for server_dir({server_dir}) either doesn\'t exist, or isn\'t a directory.') # If not, write a log message...
     quit() # and quit
 
-token = config['DEFAULT']['token'] # Get the token
+token = config.get('DEFAULT', 'token') # Get the token
 
-prefix = '.'
-if config['DEFAULT']['prefix']:
-    prefix = config['DEFAULT']['prefix']
-
-bot_role = 'Minecraft OPS'
-if config['DEFAULT']['role']:
-    bot_role = config['DEFAULT']['role']
+prefix = config.get('DEFAULT', 'prefix', fallback='.')
+bot_role = config.get('DEfAULT', 'role', fallback='Minecraft OPS')
 
 print(f'Using {server_dir} as the server directory.') # Print a log message to inform about the current status
 server_threads = [] # A list of all of the thread of the running servers
@@ -203,21 +198,17 @@ def get_server_list():
 
             server_info = server_config['server'] # Get the server section. This could be None if it does not exist. It is optional
             if server_info: # Check if there is a server section
-                server_description = server_info['description']
-                if server_description:
-                    server['description'] = server_description
+                if 'description' in server_info:
+                    server['description'] = server_info['description']
 
-                server_version = server_info['version'] # Get the version value. Again, this is optional
-                if server_version: # Check if there is a version value
-                    server['version'] = server_version # Set the version of the server info to the version from the metadata
+                if 'version' in server_info: # Check if there is a version value
+                    server['version'] = server_info['version'] # Set the version of the server info to the version from the metadata
 
-                server_mods = server_info['mods'] # Get the mods value. Again, this is optional
-                if server_mods: # Check if there is a mods value
-                    server['mods'] = server_mods # Set the mods of the server info to the mods from the metadata
+                if 'mods' in server_info: # Check if there is a mods value
+                    server['mods'] = server_info['mods'] # Set the mods of the server info to the mods from the metadata
 
-                server_ip = server_info['ip']
-                if server_ip:
-                    server['ip'] = server_ip
+                if 'ip' in server_info:
+                    server['ip'] = server_info['ip']
 
     return servers # Return the populated list of servers
 
@@ -297,17 +288,21 @@ async def run(ctx, *input):
         for server in servers: # Loop through all of the servers to add info about each of them.
             msg += '\n\t{0:<{width}}'.format(server['name'], width=max_size+4) # Append a pretty string with the server info
 
-            if server['description']:
-                msg += f'\n\t\tDescription: {server['description']}'
+            description = server['description']
+            if description:
+                msg += f'\n\t\tDescription: {description}'
 
-            if server['version']:
-                msg += f'\n\t\tVersion: {server['version']}'
+            version = server['version']
+            if version:
+                msg += f'\n\t\tVersion: {version}'
 
-            if server['mods']:
-                msg += f'\n\t\tType: {server['mods']}'
+            mods = server['mods']
+            if mods:
+                msg += f'\n\t\tType: {mods}'
 
-            if server['ip']:
-                msg += f'\n\t\tIP: {server['ip']}'
+            ip = server['ip']
+            if ip:
+                msg += f'\n\t\tIP: {ip}'
 
         msg += '```'
 
