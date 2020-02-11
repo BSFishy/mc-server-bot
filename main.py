@@ -31,6 +31,14 @@ if not path.exists(server_dir) or not path.isdir(server_dir): # Check to make su
 
 token = config['DEFAULT']['token'] # Get the token
 
+prefix = '.'
+if config['DEFAULT']['prefix']:
+    prefix = config['DEFAULT']['prefix']
+
+bot_role = 'Minecraft OPS'
+if config['DEFAULT']['role']:
+    bot_role = config['DEFAULT']['role']
+
 print(f'Using {server_dir} as the server directory.') # Print a log message to inform about the current status
 server_threads = [] # A list of all of the thread of the running servers
 
@@ -89,7 +97,7 @@ class ServerThread(threading.Thread):
         print(f'Running server {self.file} in {self.dir}') # Write a simple debug message to the console
 
         try: # Try to run the file
-            subprocess.run(f'start "Server" /D "{self.dir}" /HIGH "{self.file}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) # Run the file
+            subprocess.run(f'start "Server" /D "{self.dir}" /MIN /HIGH "{self.file}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) # Run the file
         except Exception as ex: # Catch any exceptions that may occur when running the file
             print(f'Error running {self.file}:\n\n') # Print a console message to help identify issues
             traceback.print_exc() # Print the full error
@@ -99,7 +107,7 @@ help_command.dm_help = False # Never send help as a dm
 help_command.indent = 4 # Indentation of commands from heading
 help_command.size_offset = 2 # Add a padding offset to the commands
 
-client = commands.Bot(command_prefix = '.', help_command=help_command, description='This is a bot to assist in starting Minecraft servers')
+client = commands.Bot(command_prefix = prefix, help_command=help_command, description='This is a bot to assist in starting Minecraft servers')
 
 @client.event
 async def on_ready():
@@ -185,7 +193,7 @@ def get_server_list():
     servers = [] # A list of servers. This will be populated depending on the contents of the server directories
 
     for dir in dirs: # Iterate through each server directory
-        server = {'name': dir, 'version': 'Unknown', 'mods': 'Unknown'} # Initialize the server with some default data. This can be overriden later
+        server = {'name': dir, 'description': None, 'version': None, 'mods': None, 'ip': None} # Initialize the server with some default data. This can be overriden later
         servers.append(server) # Add the server to the list of servers
 
         server_config_file = path.join(server_dir, dir, 'metadata.ini') # Construct a path to a metadata file
@@ -195,6 +203,10 @@ def get_server_list():
 
             server_info = server_config['server'] # Get the server section. This could be None if it does not exist. It is optional
             if server_info: # Check if there is a server section
+                server_description = server_info['description']
+                if server_description:
+                    server['description'] = server_description
+
                 server_version = server_info['version'] # Get the version value. Again, this is optional
                 if server_version: # Check if there is a version value
                     server['version'] = server_version # Set the version of the server info to the version from the metadata
@@ -202,6 +214,10 @@ def get_server_list():
                 server_mods = server_info['mods'] # Get the mods value. Again, this is optional
                 if server_mods: # Check if there is a mods value
                     server['mods'] = server_mods # Set the mods of the server info to the mods from the metadata
+
+                server_ip = server_info['ip']
+                if server_ip:
+                    server['ip'] = server_ip
 
     return servers # Return the populated list of servers
 
@@ -255,7 +271,7 @@ def start_server(name):
 
     print(f'Started {name}') # Print a log message to the console to inform of the current status
 
-@@commands.check_any(commands.has_role('Minecraft OPS'), commands.has_permissions(administrator=True)) # Only allow people to start server that have the role or are administrators
+@commands.check_any(commands.has_role(f'{bot_role}'), commands.has_permissions(administrator=True)) # Only allow people to start server that have the role or are administrators
 @client.command(
     name='run',
     brief='Start a server',
@@ -279,7 +295,20 @@ async def run(ctx, *input):
         msg = '```' # Begin the message string. The entire message uses a single string so that there is only one message and so that we can use formatting.
         msg += 'Available servers:'
         for server in servers: # Loop through all of the servers to add info about each of them.
-            msg += '\n\t{0:<{width}} Version: {1} Type: {2}'.format(server['name'], server['version'], server['mods'], width=max_size+4) # Append a pretty string with the server info
+            msg += '\n\t{0:<{width}}'.format(server['name'], width=max_size+4) # Append a pretty string with the server info
+
+            if server['description']:
+                msg += f'\n\t\tDescription: {server['description']}'
+
+            if server['version']:
+                msg += f'\n\t\tVersion: {server['version']}'
+
+            if server['mods']:
+                msg += f'\n\t\tType: {server['mods']}'
+
+            if server['ip']:
+                msg += f'\n\t\tIP: {server['ip']}'
+
         msg += '```'
 
         await ctx.send(msg) # Send the message
